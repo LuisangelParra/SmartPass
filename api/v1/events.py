@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 import uuid
-import datetime
 
 from SmartPass.database_models import event as EventModel
 from SmartPass.schemas import event as EventSchema

@@ -1,23 +1,123 @@
-from fastapi import APIRouter
+import io
+import zipfile
+from typing import List
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy.orm import Session
+import uuid
+
+from SmartPass.database_models import attendant as AttendantModel
+from SmartPass.schemas import attendant as AttendantSchema
+from SmartPass.database import get_db
 
 router = APIRouter()
 
-@router.post("/{event_id}/attendants")
-async def add_attendant(event_id: int):
-    return {"message": f"Add attendant to event with ID {event_id}"}
+@router.post("/{event_id}/attendants", response_model=AttendantSchema.Attendant)
+async def add_attendant(event_id: uuid.UUID, name: str = Form(...), image: UploadFile = File(...), db: Session = Depends(get_db)):
+    
+    db_event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+    
+    image_bytes = await image.read()
+    
+    # implement face embedding extraction logic here, for example using a pre-trained model
+    # embedding = extract_face_embedding(image_bytes)
+    embedding = [0.0] * 128  # Placeholder for the actual embedding vector
+    
+    db_attendant = AttendantModel.Attendant(
+        event_id=event_id,
+        name=name,
+        embedding_face=embedding
+    )
+    db.add(db_attendant)
+    db.commit()
+    db.refresh(db_attendant)
+    
+    return db_attendant
 
 @router.post("/{event_id}/attendants/bulk")
-async def add_attendants_bulk(event_id: int):
-    return {"message": f"Add bulk attendants to event with ID {event_id}"}
+async def add_attendants_bulk(event_id: uuid.UUID, zip_file: UploadFile = File(...), db: Session = Depends(get_db)):
+    
+    event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if not zip_file.content_type or zip_file.content_type != "application/zip":
+        raise HTTPException(status_code=400, detail="Invalid file type. Only ZIP files are allowed.")
+    
+    zip_bytes = await zip_file.read()
+    
+    success_attendants = []
+    errors = []
+    allowed_extensions = {".jpg", ".jpeg", ".png"}
+    
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        for file_info in archive.infolist():
+            if file_info.is_dir() or file_info.filename.startswith("__") or "/" in file_info.filename and file_info.filename.split("/")[-1].startswith("."):
+                continue
+    
+            filename = file_info.filename.split("/")[-1]
+            
+            ext = "." + filename.split(".")[-1].lower() if "." in filename else ""
+            if ext not in allowed_extensions:
+                continue
+            
+            raw_name = filename.rsplit(".", 1)[0]
+            clean_name = raw_name.replace("_", " ").replace("-", " ").strip()
+            
+            try:
+                with archive.open(file_info) as file:
+                    img_bytes = file.read()
+                
+                # implement face embedding extraction logic here, for example using a pre-trained model
+                # embedding = extract_face_embedding(img_bytes)
+                embedding = [0.0] * 128  # Placeholder for the actual embedding vector
+                
+                new_attendant = AttendantModel.Attendant(
+                    event_id=event_id,
+                    name=clean_name,
+                    embedding_face=embedding
+                )
+                success_attendants.append(new_attendant)
+            except Exception as e:
+                errors.append({"file": filename, "error": str(e)})
+                
+    if success_attendants:
+        db.add_all(success_attendants)
+        db.commit()
+    
+    return {
+        "message": f"Processed {len(success_attendants)} attendants with {len(errors)} errors.",
+        "errors": errors
+    }
 
-@router.get("/{event_id}/attendants")
-async def get_attendants(event_id: int):
-    return {"message": f"Get attendants for event with ID {event_id}"}
+@router.get("/{event_id}/attendants", response_model=List[AttendantSchema.Attendant])
+async def get_attendants(event_id: uuid.UUID, db: Session = Depends(get_db)):
+    
+    db_event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    attendants = db.query(AttendantModel.Attendant).filter(AttendantModel.Attendant.event_id == event_id).all()
+    return attendants
 
-@router.post("/{event_id}/check-in")
-async def check_in_attendant(event_id: int):
+@router.post("/{event_id}/check-in", response_model=AttendantSchema.Attendant)
+async def check_in_attendant(event_id: uuid.UUID, db: Session = Depends(get_db)):
+    # Placeholder implementation - replace with actual check-in logic
     return {"message": f"Check in attendant for event with ID {event_id}"}
 
-@router.delete("/{event_id}/attendants/{attendant_id}")
-async def remove_attendant(event_id: int, attendant_id: int):
-    return {"message": f"Remove attendant with ID {attendant_id} from event with ID {event_id}"}
+@router.delete("/{event_id}/attendants/{attendant_id}", response_model=AttendantSchema.Attendant)
+async def remove_attendant(event_id: uuid.UUID, attendant_id: uuid.UUID, db: Session = Depends(get_db)):
+    db_attendant = db.query(AttendantModel.Attendant).filter(AttendantModel.Attendant.id == attendant_id, AttendantModel.Attendant.event_id == event_id).first()
+    if not db_attendant:
+        raise HTTPException(status_code=404, detail="Attendant not found")
+    
+    db.delete(db_attendant)
+    db.commit()
+    return db_attendant
