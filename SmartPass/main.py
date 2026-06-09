@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from api.router import router
+from SmartPass.api.router import router
 
 from SmartPass.database import engine
 from SmartPass.database_models.base import Base
