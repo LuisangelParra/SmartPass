@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+/* Calm hero visual.
+   Oversized version of the brand mark — bracket reticle.
+   Scan line sweep. Pulse halo. Identity acquired moment.
+   No face. No dense mesh. No cartoon. */
+
 export function FaceScanWidget() {
   const [verified, setVerified] = useState(false);
   const [metrics, setMetrics] = useState({ dist: 0, conf: 0, lat: 0 });
@@ -42,124 +47,172 @@ export function FaceScanWidget() {
     <div className="flex flex-col items-center gap-3.5 w-full">
       <div className="scan-widget">
         <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto block">
-          <defs>
-            <radialGradient id="faceGlow" cx="50%" cy="45%" r="40%">
-              <stop offset="0%" stopColor="rgba(0,229,200,0.12)" />
-              <stop offset="100%" stopColor="rgba(0,229,200,0)" />
-            </radialGradient>
-          </defs>
-
+          {/* Backdrop */}
           <rect width="320" height="320" fill="#080B0F" />
-          <ellipse cx="160" cy="148" rx="90" ry="110" fill="url(#faceGlow)" />
 
-          {/* scan grid lines */}
-          <g stroke="rgba(0,229,200,0.07)" strokeWidth="0.8">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <line key={i} x1="28" y1={80 + i * 16} x2="292" y2={80 + i * 16} />
+          {/* Subtle grid */}
+          <g stroke="rgba(0,229,200,0.05)" strokeWidth="0.6">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <line key={`h${i}`} x1="32" y1={56 + i * 26} x2="288" y2={56 + i * 26} />
+            ))}
+            {Array.from({ length: 9 }).map((_, i) => (
+              <line key={`v${i}`} x1={32 + i * 32} y1="56" x2={32 + i * 32} y2="264" />
             ))}
           </g>
 
-          {/* Corner brackets */}
-          <g stroke="#00E5C8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" className="corner">
-            <path d="M28 72 L28 28 L72 28" />
-            <path d="M248 28 L292 28 L292 72" />
-            <path d="M28 248 L28 292 L72 292" />
-            <path d="M248 292 L292 292 L292 248" />
+          {/* Radial glow behind center */}
+          <defs>
+            <radialGradient id="centerGlow" cx="50%" cy="50%" r="35%">
+              <stop offset="0%" stopColor="rgba(0,229,200,0.22)" />
+              <stop offset="100%" stopColor="rgba(0,229,200,0)" />
+            </radialGradient>
+          </defs>
+          <rect width="320" height="320" fill="url(#centerGlow)" />
+
+          {/* Outer reticle brackets — large */}
+          <g
+            stroke="#00E5C8"
+            strokeWidth="3"
+            strokeLinecap="round"
+            fill="none"
+            className="corner"
+          >
+            <path d="M40 92 L40 56 Q40 40 56 40 L92 40" />
+            <path d="M228 40 L264 40 Q280 40 280 56 L280 92" />
+            <path d="M40 228 L40 264 Q40 280 56 280 L92 280" />
+            <path d="M228 280 L264 280 Q280 280 280 264 L280 228" />
           </g>
 
-          {/* Left measurement scale */}
-          <g stroke="rgba(0,229,200,0.3)" strokeWidth="0.8" fill="rgba(0,229,200,0.35)" fontFamily="'SF Mono','Consolas',monospace" fontSize="8">
-            <line x1="22" y1="80" x2="28" y2="80" />
-            <line x1="22" y1="112" x2="28" y2="112" />
-            <line x1="22" y1="144" x2="28" y2="144" />
-            <line x1="22" y1="176" x2="28" y2="176" />
-            <line x1="22" y1="208" x2="28" y2="208" />
-            <text x="19" y="83" textAnchor="end">0.2</text>
-            <text x="19" y="115" textAnchor="end">0.4</text>
-            <text x="19" y="147" textAnchor="end">0.6</text>
-            <text x="19" y="179" textAnchor="end">0.8</text>
-            <text x="19" y="211" textAnchor="end">1.0</text>
+          {/* Inner reticle brackets — smaller, tighter */}
+          <g
+            stroke="rgba(0,229,200,0.55)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            fill="none"
+          >
+            <path d="M104 132 L104 116 Q104 108 112 108 L128 108" />
+            <path d="M192 108 L208 108 Q216 108 216 116 L216 132" />
+            <path d="M104 188 L104 204 Q104 212 112 212 L128 212" />
+            <path d="M192 212 L208 212 Q216 212 216 204 L216 188" />
           </g>
 
-          {/* Head outline */}
-          <ellipse cx="160" cy="148" rx="66" ry="84" fill="none" stroke="rgba(0,229,200,0.28)" strokeWidth="1.4" />
+          {/* Concentric halos around center dot */}
+          <circle cx="160" cy="160" r="48" stroke="rgba(0,229,200,0.18)" strokeWidth="0.8" fill="none" />
+          <circle cx="160" cy="160" r="28" stroke="rgba(0,229,200,0.30)" strokeWidth="0.8" fill="none" />
+          <circle cx="160" cy="160" r="14" stroke="rgba(0,229,200,0.55)" strokeWidth="1" fill="none" />
 
-          {/* Eyebrows */}
-          <path d="M122 116 Q132 110 142 113" fill="none" stroke="rgba(0,229,200,0.35)" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M178 113 Q188 110 198 116" fill="none" stroke="rgba(0,229,200,0.35)" strokeWidth="1.2" strokeLinecap="round" />
+          {/* Center dot — identity acquired */}
+          <circle cx="160" cy="160" r="6" fill="#00E5C8" />
+          <circle
+            cx="160"
+            cy="160"
+            r="6"
+            fill="#00E5C8"
+            opacity="0.4"
+            style={{ animation: "pulseDot 1.8s ease-in-out infinite", transformOrigin: "160px 160px" }}
+          />
 
-          {/* Eye sockets */}
-          <ellipse cx="134" cy="127" rx="14" ry="9" fill="none" stroke="rgba(0,229,200,0.45)" strokeWidth="1.2" />
-          <ellipse cx="186" cy="127" rx="14" ry="9" fill="none" stroke="rgba(0,229,200,0.45)" strokeWidth="1.2" />
-          <circle cx="134" cy="127" r="4.5" fill="rgba(0,229,200,0.15)" stroke="rgba(0,229,200,0.8)" strokeWidth="1" />
-          <circle cx="186" cy="127" r="4.5" fill="rgba(0,229,200,0.15)" stroke="rgba(0,229,200,0.8)" strokeWidth="1" />
+          {/* Crosshair tick marks at midpoints */}
+          <line x1="160" y1="40" x2="160" y2="56" stroke="rgba(0,229,200,0.4)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="160" y1="264" x2="160" y2="280" stroke="rgba(0,229,200,0.4)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="40" y1="160" x2="56" y2="160" stroke="rgba(0,229,200,0.4)" strokeWidth="1" strokeLinecap="round" />
+          <line x1="264" y1="160" x2="280" y2="160" stroke="rgba(0,229,200,0.4)" strokeWidth="1" strokeLinecap="round" />
 
-          {/* Nose */}
-          <line x1="160" y1="138" x2="160" y2="157" stroke="rgba(0,229,200,0.35)" strokeWidth="1" strokeLinecap="round" />
-          <path d="M152 160 Q160 165 168 160" fill="none" stroke="rgba(0,229,200,0.35)" strokeWidth="1" strokeLinecap="round" />
-
-          {/* Mouth */}
-          <path d="M145 172 Q160 185 175 172" fill="none" stroke="rgba(0,229,200,0.55)" strokeWidth="1.3" strokeLinecap="round" />
-
-          {/* Chin */}
-          <path d="M 102 175 Q 106 215 160 228 Q 214 215 218 175" fill="none" stroke="rgba(0,229,200,0.2)" strokeWidth="1" />
-
-          {/* Landmarks */}
-          <g className="landmark">
-            <circle cx="120" cy="127" r="2.2" fill="#00E5C8" opacity="0.7" />
-            <circle cx="148" cy="127" r="2.2" fill="#00E5C8" opacity="0.7" />
-            <circle cx="172" cy="127" r="2.2" fill="#00E5C8" opacity="0.7" />
-            <circle cx="200" cy="127" r="2.2" fill="#00E5C8" opacity="0.7" />
-            <circle cx="134" cy="127" r="1.6" fill="#00E5C8" opacity="0.9" />
-            <circle cx="186" cy="127" r="1.6" fill="#00E5C8" opacity="0.9" />
-            <circle cx="160" cy="159" r="1.8" fill="#00E5C8" opacity="0.65" />
-            <circle cx="145" cy="172" r="1.8" fill="#00E5C8" opacity="0.65" />
-            <circle cx="175" cy="172" r="1.8" fill="#00E5C8" opacity="0.65" />
-            <circle cx="102" cy="175" r="1.6" fill="#00E5C8" opacity="0.5" />
-            <circle cx="218" cy="175" r="1.6" fill="#00E5C8" opacity="0.5" />
-            <circle cx="160" cy="228" r="1.6" fill="#00E5C8" opacity="0.45" />
-          </g>
-
-          {/* Face mesh */}
-          <g stroke="rgba(0,229,200,0.1)" strokeWidth="0.6" fill="none">
-            <line x1="120" y1="127" x2="134" y2="127" />
-            <line x1="134" y1="127" x2="148" y2="127" />
-            <line x1="172" y1="127" x2="186" y2="127" />
-            <line x1="186" y1="127" x2="200" y2="127" />
-            <line x1="134" y1="127" x2="160" y2="159" />
-            <line x1="186" y1="127" x2="160" y2="159" />
-            <line x1="160" y1="159" x2="145" y2="172" />
-            <line x1="160" y1="159" x2="175" y2="172" />
-            <line x1="145" y1="172" x2="175" y2="172" />
-            <line x1="102" y1="175" x2="145" y2="172" />
-            <line x1="218" y1="175" x2="175" y2="172" />
-          </g>
-
-          <text x="288" y="285" textAnchor="end" fontFamily="'SF Mono','Consolas',monospace" fontSize="8" fill="rgba(0,229,200,0.3)" letterSpacing="1">
+          {/* Telemetry corner labels */}
+          <text
+            x="56"
+            y="52"
+            fontFamily="'SF Mono','Consolas',monospace"
+            fontSize="8"
+            fill="rgba(0,229,200,0.5)"
+            letterSpacing="1.5"
+          >
+            ROI
+          </text>
+          <text
+            x="264"
+            y="52"
+            textAnchor="end"
+            fontFamily="'SF Mono','Consolas',monospace"
+            fontSize="8"
+            fill="rgba(0,229,200,0.5)"
+            letterSpacing="1.5"
+          >
+            240×240
+          </text>
+          <text
+            x="56"
+            y="276"
+            fontFamily="'SF Mono','Consolas',monospace"
+            fontSize="8"
+            fill="rgba(0,229,200,0.5)"
+            letterSpacing="1.5"
+          >
             ID-128DIM
           </text>
-          <text x="160" y="308" textAnchor="middle" fontFamily="'SF Mono','Consolas',monospace" fontSize="9" fill="rgba(0,229,200,0.4)" letterSpacing="3.5">
-            BIOMETRIC SCAN
+          <text
+            x="264"
+            y="276"
+            textAnchor="end"
+            fontFamily="'SF Mono','Consolas',monospace"
+            fontSize="8"
+            fill="rgba(0,229,200,0.5)"
+            letterSpacing="1.5"
+          >
+            L2 ≤ 0.6
+          </text>
+          <text
+            x="160"
+            y="308"
+            textAnchor="middle"
+            fontFamily="'SF Mono','Consolas',monospace"
+            fontSize="9"
+            fill="rgba(0,229,200,0.55)"
+            letterSpacing="4"
+          >
+            BRACKET RETICLE
           </text>
 
+          {/* Verified pill overlay */}
           {verified && (
             <g style={{ animation: "verifiedReveal 0.45s ease forwards" }}>
-              <rect x="74" y="140" width="172" height="40" rx="7" fill="rgba(0,229,200,0.08)" stroke="rgba(0,229,200,0.5)" strokeWidth="1" />
-              <text x="160" y="165" textAnchor="middle" fontFamily="'SF Mono','Consolas',monospace" fontSize="11" fill="#00E5C8" letterSpacing="2.5" fontWeight="600">
+              <rect
+                x="80"
+                y="234"
+                width="160"
+                height="32"
+                rx="6"
+                fill="rgba(0,229,200,0.10)"
+                stroke="rgba(0,229,200,0.55)"
+                strokeWidth="1"
+              />
+              <text
+                x="160"
+                y="254"
+                textAnchor="middle"
+                fontFamily="'SF Mono','Consolas',monospace"
+                fontSize="10"
+                fill="#00E5C8"
+                letterSpacing="2.5"
+                fontWeight="600"
+              >
                 ✓ IDENTITY VERIFIED
               </text>
             </g>
           )}
         </svg>
 
+        {/* Scan sweep line */}
         <div className="scan-line" aria-hidden="true" />
       </div>
 
+      {/* Status bar */}
       <div className={`scan-status ${verified ? "verified" : ""}`} aria-live="polite">
         <span className="pulse-dot" aria-hidden="true" />
         <span>{verified ? "IDENTITY VERIFIED" : "SCANNING..."}</span>
       </div>
 
+      {/* Metrics */}
       <div className="grid grid-cols-3 gap-2 w-full max-w-[380px]">
         <div className="data-card">
           <span className="data-label">L2 Dist</span>

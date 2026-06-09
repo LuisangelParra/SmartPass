@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AttendantTable } from "@/components/event/AttendantTable";
 import { RegisterForm } from "@/components/event/RegisterForm";
 import { BulkUploadForm } from "@/components/event/BulkUploadForm";
+import { QRCheckIn } from "@/components/event/QRCheckIn";
 
 export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -58,7 +59,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 pt-24">
+    <div className="max-w-5xl mx-auto px-6 py-10 pt-24">
       {/* Header */}
       <div className="mb-8">
         <Link
@@ -69,38 +70,46 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
           Back to Dashboard
         </Link>
 
-        <div className="flex items-start justify-between gap-4">
+        <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
+          {/* Left: event meta + stats */}
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text)]">{event.event_name}</h1>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs font-mono text-[var(--text-dim)] bg-[var(--surface-2)] px-2 py-1 rounded">
-                {event.id}
-              </span>
-              <span className="text-sm text-[var(--text-muted)]">{createdDate}</span>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-[var(--text)]">{event.event_name}</h1>
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-xs font-mono text-[var(--text-dim)] bg-[var(--surface-2)] px-2 py-1 rounded">
+                    {event.id}
+                  </span>
+                  <span className="text-sm text-[var(--text-muted)]">{createdDate}</span>
+                </div>
+              </div>
+              <Button asChild>
+                <Link href={`/events/${id}/checkin`}>
+                  <Video className="h-4 w-4" />
+                  Start Check-In
+                </Link>
+              </Button>
+            </div>
+
+            {/* Stats */}
+            <div className="flex gap-6 mt-6">
+              {[
+                { label: "Total", value: attendants.length },
+                { label: "Attended", value: attended, color: "var(--green)" },
+                { label: "Pending", value: pending, color: "var(--text-muted)" },
+              ].map((s) => (
+                <div key={s.label} className="flex flex-col gap-0.5">
+                  <span className="text-2xl font-bold" style={{ color: s.color || "var(--text)" }}>
+                    {s.value}
+                  </span>
+                  <span className="text-xs text-[var(--text-muted)]">{s.label}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <Button asChild>
-            <Link href={`/events/${id}/checkin`}>
-              <Video className="h-4 w-4" />
-              Start Check-In
-            </Link>
-          </Button>
-        </div>
 
-        {/* Stats */}
-        <div className="flex gap-6 mt-6">
-          {[
-            { label: "Total", value: attendants.length },
-            { label: "Attended", value: attended, color: "var(--green)" },
-            { label: "Pending", value: pending, color: "var(--text-muted)" },
-          ].map((s) => (
-            <div key={s.label} className="flex flex-col gap-0.5">
-              <span className="text-2xl font-bold" style={{ color: s.color || "var(--text)" }}>
-                {s.value}
-              </span>
-              <span className="text-xs text-[var(--text-muted)]">{s.label}</span>
-            </div>
-          ))}
+          {/* Right: QR card */}
+          <QRCheckIn eventId={id} eventName={event.event_name} />
         </div>
       </div>
 

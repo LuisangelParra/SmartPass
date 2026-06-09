@@ -21,7 +21,7 @@ router = APIRouter()
 @router.post("/{event_id}/attendants", response_model=AttendantSchema.Attendant)
 async def add_attendant(event_id: uuid.UUID, name: str = Form(...), image: UploadFile = File(...), db: Session = Depends(get_db)):
     
-    db_event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    db_event = db.query(EventModel.Event).filter(EventModel.Event.id == event_id).first()
     
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -53,7 +53,7 @@ async def add_attendant(event_id: uuid.UUID, name: str = Form(...), image: Uploa
 @router.post("/{event_id}/attendants/bulk")
 async def add_attendants_bulk(event_id: uuid.UUID, zip_file: UploadFile = File(...), db: Session = Depends(get_db)):
     
-    event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    event = db.query(EventModel.Event).filter(EventModel.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
@@ -117,7 +117,7 @@ async def add_attendants_bulk(event_id: uuid.UUID, zip_file: UploadFile = File(.
 @router.get("/{event_id}/attendants", response_model=List[AttendantSchema.Attendant])
 async def get_attendants(event_id: uuid.UUID, db: Session = Depends(get_db)):
     
-    db_event = db.query(AttendantModel.Event).filter(AttendantModel.Event.id == event_id).first()
+    db_event = db.query(EventModel.Event).filter(EventModel.Event.id == event_id).first()
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
     

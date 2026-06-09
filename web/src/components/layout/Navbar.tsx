@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 export function Navbar() {
   const pathname = usePathname();
   const isLanding = pathname === "/";
+  const isMobileCheckIn = pathname.startsWith("/c/");
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,8 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  if (isMobileCheckIn) return null;
 
   return (
     <nav
@@ -63,31 +66,48 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-export function SmartPassLogo({ height = 28 }: { height?: number }) {
+/* Bracket Reticle — biometric focus mark.
+   4 corner brackets + center dot. No background fill.
+   Carries the "scan / identify / acquire" semantic without literal imagery.
+   Scales from 16px favicon to billboard. */
+export function SmartPassLogo({
+  height = 28,
+  withWordmark = true,
+}: {
+  height?: number;
+  withWordmark?: boolean;
+}) {
+  const w = withWordmark ? 200 : 44;
   return (
-    <svg viewBox="0 0 200 44" fill="none" style={{ height, width: "auto" }} aria-hidden="true">
-      <rect x="2" y="2" width="40" height="40" rx="7" fill="#0D1117" stroke="#00E5C8" strokeWidth="1.5" />
-      <ellipse cx="22" cy="21" rx="10" ry="12" stroke="rgba(0,229,200,0.55)" strokeWidth="1.2" />
-      <circle cx="17.5" cy="17" r="2.2" fill="#00E5C8" />
-      <circle cx="26.5" cy="17" r="2.2" fill="#00E5C8" />
-      <line x1="22" y1="20" x2="22" y2="24" stroke="rgba(0,229,200,0.5)" strokeWidth="1" strokeLinecap="round" />
-      <path d="M 17 27 Q 22 31 27 27" stroke="rgba(0,229,200,0.6)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      <line x1="7" y1="19" x2="37" y2="19" stroke="rgba(0,229,200,0.18)" strokeWidth="0.8" />
-      <line x1="7" y1="23" x2="37" y2="23" stroke="rgba(0,229,200,0.18)" strokeWidth="0.8" />
-      <line x1="7" y1="27" x2="37" y2="27" stroke="rgba(0,229,200,0.18)" strokeWidth="0.8" />
-      <path d="M2 13 L2 2 L13 2" stroke="#00E5C8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M31 2 L42 2 L42 13" stroke="#00E5C8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <text
-        x="54"
-        y="30"
-        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        fontWeight="700"
-        fontSize="21"
-        letterSpacing="-0.4"
-      >
-        <tspan fill="#E6EDF3">Smart</tspan>
-        <tspan fill="#00E5C8">Pass</tspan>
-      </text>
+    <svg
+      viewBox={`0 0 ${w} 44`}
+      fill="none"
+      style={{ height, width: "auto" }}
+      aria-hidden="true"
+    >
+      {/* Corner brackets — viewfinder reticle */}
+      <path d="M4 14 L4 6 Q4 4 6 4 L14 4" stroke="#00E5C8" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M30 4 L38 4 Q40 4 40 6 L40 14" stroke="#00E5C8" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M4 30 L4 38 Q4 40 6 40 L14 40" stroke="#00E5C8" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M30 40 L38 40 Q40 40 40 38 L40 30" stroke="#00E5C8" strokeWidth="2.2" strokeLinecap="round" />
+
+      {/* Center dot — identity acquired */}
+      <circle cx="22" cy="22" r="3" fill="#00E5C8" />
+
+      {/* Wordmark */}
+      {withWordmark && (
+        <text
+          x="54"
+          y="29"
+          fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif"
+          fontWeight="800"
+          fontSize="20"
+          letterSpacing="-0.8"
+        >
+          <tspan fill="#E6EDF3">Smart</tspan>
+          <tspan fill="#00E5C8">Pass</tspan>
+        </text>
+      )}
     </svg>
   );
 }

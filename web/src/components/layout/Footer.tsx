@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SmartPassLogo } from "./Navbar";
 
 const groups = [
@@ -32,6 +35,9 @@ const groups = [
 ];
 
 export function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/c/")) return null;
+
   return (
     <footer
       className="border-t border-[var(--border)] px-7 pt-16 pb-9"
