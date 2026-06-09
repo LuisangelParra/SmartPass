@@ -8,6 +8,12 @@ from SmartPass.database import get_db
 
 router = APIRouter()
 
+
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @router.post("/", response_model=EventSchema.Event)
 async def create_event(event: EventSchema.EventCreate, db: Session = Depends(get_db)):
     db_event = EventModel.Event(event_name=event.event_name)
