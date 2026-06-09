@@ -1,11 +1,12 @@
 from .base import Base
 from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import List
+from typing import List, TYPE_CHECKING
 import uuid
 import datetime
 
-from .attendant import Attendant
+if TYPE_CHECKING:
+    from .attendant import Attendant
 
 class Event(Base):
     __tablename__ = "events"

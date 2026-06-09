@@ -6,7 +6,7 @@ class EventCreate(BaseModel):
     event_name: str
     
 class Event(BaseModel):
-    model_config__ = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     event_name: str
     created_at: datetime
