@@ -1,7 +1,6 @@
 from fastapi import FastAPI
+from api.router import router
 
-app = FastAPI()
+app = FastAPI(title="SmartPass API")
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+app.include_router(router)
