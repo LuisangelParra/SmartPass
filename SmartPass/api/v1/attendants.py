@@ -11,6 +11,8 @@ from SmartPass.database_models import attendant as AttendantModel
 from SmartPass.schemas import attendant as AttendantSchema
 from SmartPass.database import get_db
 
+from SmartPass.services.core_ia import extract_embedding
+
 router = APIRouter()
 
 @router.post("/{event_id}/attendants", response_model=AttendantSchema.Attendant)
@@ -26,9 +28,13 @@ async def add_attendant(event_id: uuid.UUID, name: str = Form(...), image: Uploa
     
     image_bytes = await image.read()
     
-    # implement face embedding extraction logic here, for example using a pre-trained model
-    # embedding = extract_face_embedding(image_bytes)
-    embedding = [0.0] * 128  # Placeholder for the actual embedding vector
+    try:
+        embedding = extract_embedding(image_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while processing the image.")
+    
     
     db_attendant = AttendantModel.Attendant(
         event_id=event_id,
@@ -75,9 +81,7 @@ async def add_attendants_bulk(event_id: uuid.UUID, zip_file: UploadFile = File(.
                 with archive.open(file_info) as file:
                     img_bytes = file.read()
                 
-                # implement face embedding extraction logic here, for example using a pre-trained model
-                # embedding = extract_face_embedding(img_bytes)
-                embedding = [0.0] * 128  # Placeholder for the actual embedding vector
+                embedding = extract_embedding(img_bytes)
                 
                 new_attendant = AttendantModel.Attendant(
                     event_id=event_id,
@@ -85,8 +89,18 @@ async def add_attendants_bulk(event_id: uuid.UUID, zip_file: UploadFile = File(.
                     embedding_face=embedding
                 )
                 success_attendants.append(new_attendant)
-            except Exception as e:
-                errors.append({"file": filename, "error": str(e)})
+            except ValueError as e:
+                errors.append({
+                    "file": filename, 
+                    "error": str(e)
+                })
+                continue
+            except Exception:
+                errors.append({
+                    "file": filename, 
+                    "error": "Invalid or corrupted image file."
+                })
+                continue
                 
     if success_attendants:
         db.add_all(success_attendants)
