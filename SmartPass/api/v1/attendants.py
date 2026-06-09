@@ -1,5 +1,6 @@
 import io
 import zipfile
+import datetime
 from typing import List
 import uuid
 
@@ -8,10 +9,12 @@ from sqlalchemy.orm import Session
 import uuid
 
 from SmartPass.database_models import attendant as AttendantModel
+from SmartPass.database_models import event as EventModel
 from SmartPass.schemas import attendant as AttendantSchema
+from SmartPass.schemas.checkin import CheckInRequest
 from SmartPass.database import get_db
 
-from SmartPass.services.core_ia import extract_embedding
+from SmartPass.services.core_ia import extract_embedding, decode_base64_frame, extract_frame_embedding_for_checkin
 
 router = APIRouter()
 
@@ -122,9 +125,48 @@ async def get_attendants(event_id: uuid.UUID, db: Session = Depends(get_db)):
     return attendants
 
 @router.post("/{event_id}/check-in", response_model=AttendantSchema.Attendant)
-async def check_in_attendant(event_id: uuid.UUID, db: Session = Depends(get_db)):
-    # Placeholder implementation - replace with actual check-in logic
-    return {"message": f"Check in attendant for event with ID {event_id}"}
+async def check_in_attendant(event_id: uuid.UUID, payload: CheckInRequest, db: Session = Depends(get_db)):
+    event = db.query(EventModel.Event).filter(EventModel.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    try:
+        frame = decode_base64_frame(payload.image_base64)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    current_embedding = extract_frame_embedding_for_checkin(frame)
+    
+    if not current_embedding:
+        raise HTTPException(status_code=400, detail="No face detected in the current frame")
+
+    closest_match = (
+        db.query(
+            AttendantModel.Attendant, 
+            AttendantModel.Attendant.embedding_face.l2_distance(current_embedding).label("distance")
+        )
+        .filter(AttendantModel.Attendant.event_id == event_id)
+        .filter(AttendantModel.Attendant.attended == False)
+        .order_by("distance")
+        .first()
+    )
+
+    if not closest_match:
+        raise HTTPException(status_code=404, detail="No pending attendants found for this event")
+
+    attendant, distance = closest_match
+
+    THRESHOLD = 0.6
+    if distance > THRESHOLD:
+        raise HTTPException(status_code=401, detail="Face not recognized. Access denied.")
+
+    attendant.attended = True
+    attendant.attended_at = datetime.datetime.now(datetime.timezone.utc)
+    
+    db.commit()
+    db.refresh(attendant)
+
+    return attendant
 
 @router.delete("/{event_id}/attendants/{attendant_id}", response_model=AttendantSchema.Attendant)
 async def remove_attendant(event_id: uuid.UUID, attendant_id: uuid.UUID, db: Session = Depends(get_db)):
