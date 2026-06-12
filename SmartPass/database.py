@@ -7,11 +7,11 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "postgresql+psycopg2://postgres:password@localhost:5432/example_db"
 )
 
-# Railway/Heroku/etc. inject a bare "postgresql://" URL; SQLAlchemy needs the driver suffix.
-if SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
-        "postgresql://", "postgresql+psycopg2://", 1
-    )
+# Railway/Heroku/etc. inject bare "postgres://" or "postgresql://"; SQLAlchemy needs the driver suffix.
+for _prefix in ("postgres://", "postgresql://"):
+    if SQLALCHEMY_DATABASE_URL.startswith(_prefix):
+        SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://" + SQLALCHEMY_DATABASE_URL[len(_prefix):]
+        break
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
