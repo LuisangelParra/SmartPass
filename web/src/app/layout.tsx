@@ -5,6 +5,8 @@ import { Providers } from "@/lib/providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const fontDisplay = Space_Grotesk({
   subsets: ["latin"],
@@ -143,6 +145,8 @@ export default function RootLayout({
           <Footer />
           <Toaster theme="dark" position="bottom-right" richColors />
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
