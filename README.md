@@ -1,8 +1,20 @@
 # SmartPass
 
-SmartPass is a **biometric access control API** for events. It eliminates physical tickets, QR codes, and RFID cards by using real-time facial recognition to verify attendees at check-in.
+![SmartPass landing page — your face is your ticket](docs/screenshots/landing-hero.png)
+
+SmartPass is a **biometric access control system** for events. It eliminates physical tickets, QR codes, and RFID cards by using real-time facial recognition to verify attendees at check-in.
 
 Organizers create an event, upload attendee photos (individually or in bulk via ZIP), then point a webcam at the door. The API matches faces against registered embeddings stored in PostgreSQL using `pgvector` L2 distance — no raw images ever persist.
+
+---
+
+## Screenshots
+
+| Organizer dashboard | Reception terminal |
+|---|---|
+| ![Per-event dashboard with stat tiles, live progress, sticky enrollment sidebar, and roster table](docs/screenshots/dashboard.png) | ![Full-screen reception check-in terminal with scan reticle and start button](docs/screenshots/reception.png) |
+
+![Live demo section showing the dashboard arrivals feed updating in real time](docs/screenshots/live-views.png)
 
 ---
 
@@ -27,6 +39,7 @@ Organizers create an event, upload attendee photos (individually or in bulk via 
 | Face recognition | `face_recognition` (dlib), OpenCV, Pillow |
 | Server | Uvicorn |
 | Local infra | Docker Compose |
+| Frontend | Next.js 16 (App Router), React 19, TanStack Query, Tailwind v4, react-webcam, qrcode.react |
 
 ---
 
