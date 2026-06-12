@@ -2,13 +2,13 @@
 
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { Hero } from "@/components/landing/Hero";
+import { StackStrip } from "@/components/landing/StackStrip";
+import { Problem } from "@/components/landing/Problem";
 import { Features } from "@/components/landing/Features";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { UseCases } from "@/components/landing/UseCases";
-import { CodeExample } from "@/components/landing/CodeExample";
-import { StackStrip } from "@/components/landing/StackStrip";
-import { FAQ } from "@/components/landing/FAQ";
-import { CTABanner } from "@/components/landing/CTABanner";
+import { Views } from "@/components/landing/Views";
+import { Developers } from "@/components/landing/Developers";
+import { FinalCTA } from "@/components/landing/FinalCTA";
 
 export default function LandingPage() {
   useScrollReveal();
@@ -16,13 +16,13 @@ export default function LandingPage() {
   return (
     <>
       <Hero />
+      <StackStrip />
+      <Problem />
       <Features />
       <HowItWorks />
-      <UseCases />
-      <CodeExample />
-      <StackStrip />
-      <FAQ />
-      <CTABanner />
+      <Views />
+      <Developers />
+      <FinalCTA />
     </>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/landing/icons";
 import type { BulkResult } from "@/types";
 
 interface Props {
@@ -15,9 +14,9 @@ interface Props {
 export function BulkUploadForm({ eventId }: Props) {
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  const [over, setOver] = useState(false);
   const [result, setResult] = useState<BulkResult | null>(null);
-  const [errorsOpen, setErrorsOpen] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
@@ -25,73 +24,129 @@ export function BulkUploadForm({ eventId }: Props) {
       form.append("zip_file", file!);
       return api.bulkUpload(eventId, form);
     },
-    onSuccess: (res) => {
+    onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["attendants", eventId] });
-      setResult(res);
+      setResult(r);
       setFile(null);
-      toast.success(res.message);
+      toast.success(r.message || "Bulk upload complete");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message || "Upload failed"),
   });
 
+  function pick(f: File | undefined | null) {
+    if (!f) return;
+    const isZip =
+      /\.zip$/i.test(f.name) ||
+      f.type === "application/zip" ||
+      f.type === "application/x-zip-compressed";
+    if (!isZip) {
+      toast.error("Please drop a .zip archive");
+      return;
+    }
+    setFile(f);
+    setResult(null);
+  }
+
+  function onDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setOver(false);
+    pick(e.dataTransfer.files[0]);
+  }
+
   return (
-    <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col gap-4">
-      <h3 className="font-semibold text-[var(--text)]">Bulk Upload</h3>
-
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="flex flex-col items-center gap-2 py-8 rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-      >
-        <Archive className="h-6 w-6" />
-        <span className="text-sm">
-          {file ? file.name : "Click to upload ZIP file"}
-        </span>
-      </button>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/zip,.zip"
-        className="hidden"
-        onChange={(e) => {
-          setFile(e.target.files?.[0] ?? null);
-          setResult(null);
-        }}
-      />
-
-      <p className="text-xs text-[var(--text-muted)]">
-        Filenames become names: <code>john_doe.jpg</code> → John Doe
+    <div className="card">
+      <h3>
+        <Icon name="zip" size={18} /> Bulk enroll via ZIP
+      </h3>
+      <p className="hint">
+        Drop one ZIP of photos labeled by name — <span className="mono">john_doe.jpg</span>{" "}
+        → &ldquo;john doe&rdquo;. Processed entirely in memory.
       </p>
-
-      <Button onClick={() => mutate()} disabled={!file || isPending}>
-        {isPending ? "Uploading…" : "Upload ZIP"}
-      </Button>
-
-      {result && (
-        <div className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] p-4 text-sm">
-          <p className="text-[var(--text)]">{result.message}</p>
-          {result.errors.length > 0 && (
-            <div className="mt-3">
-              <button
-                onClick={() => setErrorsOpen((o) => !o)}
-                className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-              >
-                {errorsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {result.errors.length} error{result.errors.length !== 1 ? "s" : ""}
-              </button>
-              {errorsOpen && (
-                <ul className="mt-2 space-y-1">
-                  {result.errors.map((e, i) => (
-                    <li key={i} className="text-xs text-red-400">
-                      <span className="font-mono">{e.file}</span>: {e.error}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+      <div
+        className={"drop" + (over ? " over" : "")}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={onDrop}
+      >
+        <span className="di">
+          <Icon name={isPending ? "scan" : "zip"} size={26} />
+        </span>
+        <span className="dt">
+          {file ? file.name : "Drop guests.zip or click to browse"}
+        </span>
+        <span className="ds">.jpg / .jpeg / .png inside</span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".zip,application/zip"
+          hidden
+          onChange={(e) => pick(e.target.files?.[0])}
+        />
+      </div>
+      {isPending && (
+        <div style={{ marginTop: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              marginBottom: 7,
+              color: "var(--text-muted)",
+            }}
+          >
+            <span>decompressing &amp; encoding…</span>
+            <span className="spin" />
+          </div>
+          <div className="bar">
+            <i style={{ width: "70%", animation: "none" }} />
+          </div>
         </div>
+      )}
+      {result && (
+        <div style={{ marginTop: 14, fontSize: 13 }}>
+          <div
+            className="mono"
+            style={{
+              color: "var(--green)",
+              marginBottom: result.errors && result.errors.length ? 8 : 0,
+            }}
+          >
+            ✓ {result.message}
+          </div>
+          {result.errors &&
+            result.errors.map((er, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  color: "var(--text-faint)",
+                  fontSize: 12,
+                  padding: "3px 0",
+                }}
+              >
+                <span style={{ color: "var(--amber)", flex: "none" }}>!</span>
+                <span>
+                  <b className="mono">{er.file}</b> — {er.error}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+      {!isPending && (
+        <button
+          className="btn btn-ghost btn-block"
+          style={{ marginTop: 14 }}
+          disabled={!file}
+          onClick={() => mutate()}
+        >
+          <Icon name="upload" size={17} /> Upload &amp; enroll
+        </button>
       )}
     </div>
   );

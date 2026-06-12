@@ -1,30 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
-import { Copy, Download, Check, QrCode } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/landing/icons";
 
 interface Props {
   eventId: string;
   eventName: string;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function QRCheckIn({ eventId, eventName }: Props) {
+export function QRCheckIn({ eventId, eventName, open, onClose }: Props) {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const hiddenCanvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setUrl(`${window.location.origin}/c/${eventId}`);
-  }, [eventId]);
+    if (open) setUrl(`${window.location.origin}/c/${eventId}`);
+  }, [eventId, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   function copy() {
-    navigator.clipboard.writeText(url);
+    navigator.clipboard?.writeText(url);
     setCopied(true);
     toast.success("Link copied");
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   function download() {
@@ -40,69 +58,107 @@ export function QRCheckIn({ eventId, eventName }: Props) {
   }
 
   return (
-    <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-6 flex flex-col gap-5">
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-[var(--accent-dim)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)]">
-          <QrCode className="h-4 w-4" />
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "oklch(0.1 0.012 256 / 0.7)",
+        backdropFilter: "blur(6px)",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 440,
+          border: "1px solid var(--line)",
+          borderRadius: "var(--r-xl)",
+          background: "var(--ink-850)",
+          boxShadow: "var(--shadow-panel)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "18px 22px",
+            borderBottom: "1px solid var(--line)",
+          }}
+        >
+          <h3 style={{ fontSize: 17 }}>Open reception on another device</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="x" size={18} />
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-[var(--text)]">Mobile Check-In</h3>
-          <p className="text-xs text-[var(--text-muted)]">Scan with any phone to start</p>
+        <div style={{ padding: 22 }}>
+          <p
+            style={{
+              fontSize: 13.5,
+              color: "var(--text-muted)",
+              marginBottom: 18,
+              lineHeight: 1.55,
+            }}
+          >
+            Scan this with a tablet or phone at the entrance to launch the live
+            check-in terminal for <b>{eventName}</b>.
+          </p>
+          <div className="qr-box">
+            {url ? (
+              <QRCodeSVG
+                value={url}
+                size={216}
+                bgColor="#ffffff"
+                fgColor="#0b0c0f"
+                level="M"
+                marginSize={0}
+              />
+            ) : (
+              <div style={{ width: 216, height: 216 }} />
+            )}
+          </div>
+          <div ref={hiddenCanvasRef} style={{ position: "absolute", left: -9999, top: -9999 }}>
+            {url && (
+              <QRCodeCanvas
+                value={url}
+                size={1024}
+                bgColor="#ffffff"
+                fgColor="#0b0c0f"
+                level="M"
+                marginSize={2}
+              />
+            )}
+          </div>
+          <div className="qr-url">
+            <span>{url || "Loading…"}</span>
+            <button
+              className="icon-btn"
+              style={{ width: 30, height: 30 }}
+              onClick={copy}
+            >
+              <Icon name={copied ? "check" : "layers"} size={15} />
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <button className="btn btn-ghost btn-block" onClick={download}>
+              <Icon name="upload" size={17} /> Download PNG
+            </button>
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => router.push(`/events/${eventId}/checkin`)}
+            >
+              <Icon name="scan" size={17} /> Open here
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* QR */}
-      <div className="flex items-center justify-center p-4 rounded-[10px] bg-[var(--bg)] border border-[var(--border)]">
-        {url ? (
-          <QRCodeSVG
-            value={url}
-            size={196}
-            bgColor="transparent"
-            fgColor="#00E5C8"
-            level="M"
-            marginSize={0}
-          />
-        ) : (
-          <div className="w-[196px] h-[196px] animate-pulse bg-[var(--surface-2)] rounded" />
-        )}
-      </div>
-
-      {/* Hidden canvas used for PNG export */}
-      <div ref={hiddenCanvasRef} style={{ position: "absolute", left: -9999, top: -9999 }}>
-        {url && (
-          <QRCodeCanvas
-            value={url}
-            size={1024}
-            bgColor="#0D1117"
-            fgColor="#00E5C8"
-            level="M"
-            marginSize={2}
-          />
-        )}
-      </div>
-
-      {/* URL display */}
-      <div className="flex items-center gap-1.5">
-        <code className="flex-1 px-3 py-2 rounded-md bg-[var(--bg)] border border-[var(--border)] font-mono text-[11px] text-[var(--text-muted)] truncate">
-          {url || "Loading..."}
-        </code>
-      </div>
-
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" size="sm" onClick={copy} disabled={!url}>
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy link"}
-        </Button>
-        <Button variant="outline" size="sm" onClick={download} disabled={!url}>
-          <Download className="h-3.5 w-3.5" />
-          Download PNG
-        </Button>
-      </div>
-
-      <p className="text-[11px] text-[var(--text-dim)] leading-relaxed">
-        Camera access requires HTTPS. Deploy to Vercel or use a tunnel for testing on a phone over LAN.
-      </p>
     </div>
   );
 }

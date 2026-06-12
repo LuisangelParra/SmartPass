@@ -4,19 +4,26 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Video } from "lucide-react";
 import { api } from "@/lib/api";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/landing/icons";
 import { AttendantTable } from "@/components/event/AttendantTable";
 import { RegisterForm } from "@/components/event/RegisterForm";
 import { BulkUploadForm } from "@/components/event/BulkUploadForm";
 import { QRCheckIn } from "@/components/event/QRCheckIn";
 
-export default function EventPage({ params }: { params: Promise<{ id: string }> }) {
+function shortId(id: string) {
+  return id ? id.slice(0, 8) : "";
+}
+
+export default function EventPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
   const [notFound, setNotFound] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const { data: event, isLoading } = useQuery({
     queryKey: ["event", id],
@@ -28,6 +35,7 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
     queryKey: ["attendants", id],
     queryFn: () => api.getAttendants(id),
     enabled: !!event,
+    refetchInterval: 3000,
   });
 
   useEffect(() => {
@@ -38,99 +46,173 @@ export default function EventPage({ params }: { params: Promise<{ id: string }> 
     if (notFound) router.push("/dashboard");
   }, [notFound, router]);
 
-  if (isLoading || notFound) {
+  if (isLoading || notFound || !event) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-10 pt-24">
-        <div className="h-8 w-48 rounded bg-[var(--surface-2)] animate-pulse mb-4" />
-        <div className="h-4 w-96 rounded bg-[var(--surface-2)] animate-pulse" />
-      </div>
+      <>
+        <AppBar />
+        <div className="dash-page">
+          <div className="wrap">
+            <div
+              style={{
+                height: 28,
+                width: 240,
+                borderRadius: 8,
+                background: "var(--ink-800)",
+                marginBottom: 16,
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            />
+            <div
+              style={{
+                height: 16,
+                width: 400,
+                borderRadius: 8,
+                background: "var(--ink-800)",
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            />
+          </div>
+        </div>
+      </>
     );
   }
 
-  if (!event) return null;
-
-  const attended = attendants.filter((a) => a.attended).length;
-  const pending = attendants.length - attended;
-
-  const createdDate = new Date(event.created_at).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const total = attendants.length;
+  const arrived = attendants.filter((a) => a.attended).length;
+  const pending = total - arrived;
+  const pct = total ? Math.round((arrived / total) * 100) : 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 pt-24">
-      {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
-
-        <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
-          {/* Left: event meta + stats */}
-          <div>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-[var(--text)]">{event.event_name}</h1>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs font-mono text-[var(--text-dim)] bg-[var(--surface-2)] px-2 py-1 rounded">
-                    {event.id}
-                  </span>
-                  <span className="text-sm text-[var(--text-muted)]">{createdDate}</span>
-                </div>
-              </div>
-              <Button asChild>
-                <Link href={`/events/${id}/checkin`}>
-                  <Video className="h-4 w-4" />
-                  Start Check-In
-                </Link>
-              </Button>
-            </div>
-
-            {/* Stats */}
-            <div className="flex gap-6 mt-6">
-              {[
-                { label: "Total", value: attendants.length },
-                { label: "Attended", value: attended, color: "var(--green)" },
-                { label: "Pending", value: pending, color: "var(--text-muted)" },
-              ].map((s) => (
-                <div key={s.label} className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-bold" style={{ color: s.color || "var(--text)" }}>
-                    {s.value}
-                  </span>
-                  <span className="text-xs text-[var(--text-muted)]">{s.label}</span>
-                </div>
-              ))}
-            </div>
+    <>
+      <AppBar
+        event={event}
+        right={
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setQrOpen(true)}
+            >
+              <Icon name="layers" size={16} /> Reception QR
+            </button>
+            <Link
+              className="btn btn-primary btn-sm"
+              href={`/events/${id}/checkin`}
+            >
+              <Icon name="scan" size={16} /> Open reception
+            </Link>
           </div>
+        }
+      />
 
-          {/* Right: QR card */}
-          <QRCheckIn eventId={id} eventName={event.event_name} />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="attendants">
-        <TabsList>
-          <TabsTrigger value="attendants">Attendants</TabsTrigger>
-          <TabsTrigger value="register">Register</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="attendants">
-          <AttendantTable eventId={id} />
-        </TabsContent>
-
-        <TabsContent value="register">
-          <div className="grid md:grid-cols-2 gap-4">
+      <div className="dash-page">
+        <div className="wrap dash-layout">
+          <div className="side-col">
             <RegisterForm eventId={id} />
             <BulkUploadForm eventId={id} />
           </div>
-        </TabsContent>
-      </Tabs>
+
+          <div className="main-col">
+            <div className="stat-row">
+              <div className="stat-tile">
+                <div className="l">Total guests</div>
+                <div className="v">{total}</div>
+              </div>
+              <div className="stat-tile accent">
+                <div className="l">Checked in</div>
+                <div className="v">{arrived}</div>
+              </div>
+              <div className="stat-tile">
+                <div className="l">Pending</div>
+                <div className="v">{pending}</div>
+              </div>
+              <div className="stat-tile">
+                <div className="l">Attendance</div>
+                <div className="v">
+                  {pct}
+                  <small>%</small>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: "16px 18px",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+              }}
+            >
+              <span className="conn-pill live">
+                <span className="d" />
+                LIVE
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="bar">
+                  <i style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+              <span
+                className="mono"
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-faint)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                auto-refresh · 3s
+              </span>
+            </div>
+
+            <AttendantTable eventId={id} />
+          </div>
+        </div>
+      </div>
+
+      <QRCheckIn
+        eventId={id}
+        eventName={event.event_name}
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+      />
+    </>
+  );
+}
+
+function AppBar({
+  event,
+  right,
+}: {
+  event?: { id: string; event_name: string };
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="appbar">
+      <div className="wrap appbar-inner">
+        <Link href="/" className="brand">
+          <span className="brand-mark">
+            <Icon name="fingerprint" size={17} stroke={1.8} />
+          </span>
+          SmartPass
+        </Link>
+        {event && (
+          <div
+            style={{
+              borderLeft: "1px solid var(--line)",
+              paddingLeft: 18,
+              lineHeight: 1.25,
+            }}
+          >
+            <div className="ev-name">{event.event_name}</div>
+            <div className="ev-id">event/{shortId(event.id)}</div>
+          </div>
+        )}
+        <div className="spacer" />
+        {right}
+        <Link href="/dashboard" className="btn btn-ghost btn-sm">
+          <Icon name="arrow" size={15} /> All events
+        </Link>
+      </div>
     </div>
   );
 }

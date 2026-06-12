@@ -1,21 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Webcam from "react-webcam";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { RotateCw, Check, X, AlertCircle, Camera } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import Webcam from "react-webcam";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { SmartPassLogo } from "@/components/layout/Navbar";
+import { Icon } from "@/components/landing/icons";
 import type { Attendant } from "@/types";
 
-type State =
-  | { kind: "idle" }
-  | { kind: "capturing" }
-  | { kind: "verified"; attendant: Attendant }
-  | { kind: "denied" }
-  | { kind: "no_face" }
-  | { kind: "error"; message: string };
+type Status = "idle" | "scanning" | "matching" | "welcome" | "denied";
 
 interface ApiError extends Error {
   status: number;
@@ -25,14 +19,38 @@ interface Props {
   eventId: string;
 }
 
+function fmtTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export function MobileCheckIn({ eventId }: Props) {
   const webcamRef = useRef<Webcam>(null);
-  const [state, setState] = useState<State>({ kind: "idle" });
+  const [running, setRunning] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [result, setResult] = useState<
+    | { ok: true; name: string; at: string | null }
+    | { ok: false; msg: string }
+    | null
+  >(null);
+  const [count, setCount] = useState(0);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [camReady, setCamReady] = useState(false);
+  const [camError, setCamError] = useState<"denied" | "unavailable" | null>(
+    null
+  );
   const [insecure, setInsecure] = useState(false);
 
-  const { data: event, isLoading, isError } = useQuery({
+  const busyRef = useRef(false);
+  const cooldownRef = useRef(false);
+
+  const { data: event, isError } = useQuery({
     queryKey: ["event", eventId],
     queryFn: () => api.getEvent(eventId),
     retry: false,
@@ -47,87 +65,196 @@ export function MobileCheckIn({ eventId }: Props) {
     setInsecure(!ok);
   }, []);
 
-  // Auto-reset after result
   useEffect(() => {
-    if (state.kind === "verified" || state.kind === "denied" || state.kind === "no_face") {
-      const t = setTimeout(() => setState({ kind: "idle" }), 2800);
-      return () => clearTimeout(t);
-    }
-  }, [state]);
+    if (!running) return;
+    const iv = setInterval(async () => {
+      if (busyRef.current || cooldownRef.current || !camReady) return;
+      const frame = webcamRef.current?.getScreenshot({
+        width: 480,
+        height: 360,
+      });
+      if (!frame) return;
+      busyRef.current = true;
+      setStatus((s) => (s === "welcome" || s === "denied" ? s : "matching"));
+      try {
+        const a: Attendant = await api.checkIn(eventId, frame);
+        setResult({ ok: true, name: a.name, at: a.attended_at });
+        setStatus("welcome");
+        setCount((c) => c + 1);
+        navigator.vibrate?.(60);
+        cooldownRef.current = true;
+        setTimeout(() => {
+          cooldownRef.current = false;
+          setStatus("scanning");
+          setResult(null);
+        }, 3200);
+      } catch (err) {
+        const e = err as ApiError;
+        if (e.status === 401) {
+          setResult({ ok: false, msg: "Not on the guest list" });
+          setStatus("denied");
+          navigator.vibrate?.([40, 30, 40]);
+          cooldownRef.current = true;
+          setTimeout(() => {
+            cooldownRef.current = false;
+            setStatus("scanning");
+            setResult(null);
+          }, 2600);
+        } else if (e.status === 400) {
+          setStatus((s) =>
+            s === "welcome" || s === "denied" ? s : "scanning"
+          );
+        } else if (e.status === 404) {
+          setResult({
+            ok: false,
+            msg: e.message || "No pending guests remain",
+          });
+          setStatus("denied");
+          cooldownRef.current = true;
+          setTimeout(() => {
+            cooldownRef.current = false;
+            setStatus("scanning");
+            setResult(null);
+          }, 2600);
+        } else {
+          toast.error(e.message || "Check-in failed");
+          setStatus("scanning");
+        }
+      } finally {
+        busyRef.current = false;
+      }
+    }, 1400);
+    return () => clearInterval(iv);
+  }, [running, eventId, camReady]);
 
-  const capture = useCallback(async () => {
-    if (!camReady || state.kind === "capturing") return;
-    const shot = webcamRef.current?.getScreenshot();
-    if (!shot) {
-      setState({ kind: "error", message: "Camera not ready" });
-      return;
-    }
-    setState({ kind: "capturing" });
-    try {
-      const attendant = await api.checkIn(eventId, shot);
-      setState({ kind: "verified", attendant });
-      navigator.vibrate?.(60);
-    } catch (err) {
-      const e = err as ApiError;
-      if (e.status === 401) setState({ kind: "denied" });
-      else if (e.status === 400) setState({ kind: "no_face" });
-      else setState({ kind: "error", message: e.message ?? "Request failed" });
-      navigator.vibrate?.([40, 30, 40]);
-    }
-  }, [camReady, eventId, state.kind]);
+  function start() {
+    setRunning(true);
+    setStatus("scanning");
+  }
+  function stop() {
+    setRunning(false);
+    setStatus("idle");
+    setResult(null);
+  }
+  function flip() {
+    setCamReady(false);
+    setFacing((f) => (f === "user" ? "environment" : "user"));
+  }
 
   if (isError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center gap-4">
-        <AlertCircle className="h-10 w-10 text-[var(--text-muted)]" />
-        <h1 className="text-xl font-bold text-[var(--text)]">Event not found</h1>
-        <p className="text-sm text-[var(--text-muted)]">
-          This check-in link is invalid or the event was deleted.
-        </p>
-        <Link
-          href="/"
-          className="mt-2 px-5 py-2.5 rounded-md text-sm font-semibold"
-          style={{ background: "var(--accent)", color: "#080B0F" }}
-        >
-          Go home
-        </Link>
+      <div className="cam-page" style={{ display: "grid", placeItems: "center" }}>
+        <div style={{ textAlign: "center", maxWidth: 320, padding: 24 }}>
+          <div
+            className="result-icon"
+            style={{
+              margin: "0 auto 20px",
+              background: "var(--red-dim)",
+              color: "var(--red)",
+            }}
+          >
+            <Icon name="x" size={32} stroke={2.4} />
+          </div>
+          <h2 style={{ fontSize: 22 }}>Event not found</h2>
+          <p style={{ color: "var(--text-muted)", marginTop: 10 }}>
+            This check-in link is invalid or the event was deleted.
+          </p>
+          <Link
+            href="/"
+            className="btn btn-primary"
+            style={{ marginTop: 22, display: "inline-flex" }}
+          >
+            <Icon name="arrow" size={17} /> Go home
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const reticleClass =
+    status === "welcome" ? "ok" : status === "denied" ? "bad" : "";
+
+  const statusInfo: Record<Status, [string, string]> = {
+    idle: ["TAP START", "var(--text-faint)"],
+    scanning: ["SEARCHING FOR FACE", "var(--cyan)"],
+    matching: ["MATCHING", "var(--amber)"],
+    welcome: ["MATCH FOUND", "var(--green)"],
+    denied: ["NO MATCH", "var(--red)"],
+  };
+  const [statusText, statusColor] = statusInfo[status];
+
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "var(--bg)", minHeight: "100dvh" }}
-    >
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-5 pt-5 pb-3 gap-3">
-        <Link href="/" aria-label="SmartPass" className="flex items-center">
-          <SmartPassLogo height={22} />
+    <div className="cam-page" style={{ minHeight: "100dvh" }}>
+      <div className="cam-topbar">
+        <Link className="btn btn-ghost btn-sm" href="/">
+          <Icon name="arrow" size={16} />
         </Link>
-        <div className="flex-1 min-w-0 text-right">
-          <div className="text-[10px] uppercase tracking-widest font-mono text-[var(--text-muted)]">
-            Event
-          </div>
-          <div className="text-[13px] font-semibold text-[var(--text)] truncate">
-            {isLoading ? "—" : event?.event_name}
+        <div className="spacer" />
+        <div style={{ textAlign: "center", lineHeight: 1.25 }}>
+          <div className="ttl">{event ? event.event_name : "Reception"}</div>
+          <div
+            className="mono"
+            style={{ fontSize: 11, color: "var(--text-faint)" }}
+          >
+            mobile check-in
           </div>
         </div>
-      </header>
+        <div className="spacer" />
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={flip}
+          title="Flip camera"
+        >
+          <Icon name="scan" size={16} />
+        </button>
+      </div>
 
-      {/* Insecure warning */}
       {insecure && (
-        <div className="mx-5 mb-2 px-3.5 py-2.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs flex items-start gap-2">
-          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+        <div
+          style={{
+            margin: "0 16px 8px",
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: "1px solid oklch(0.82 0.15 75 / 0.35)",
+            background: "oklch(0.82 0.15 75 / 0.08)",
+            color: "var(--amber)",
+            fontSize: 12.5,
+            display: "flex",
+            gap: 9,
+          }}
+        >
+          <Icon name="lock" size={14} />
           <span>
-            Camera requires HTTPS. Use a Vercel preview or tunnel (cloudflared / ngrok) to test on a phone.
+            Camera requires HTTPS. Use a Vercel preview or tunnel to test on a
+            phone.
           </span>
         </div>
       )}
 
-      {/* Camera area */}
-      <main className="flex-1 flex flex-col px-5 gap-4 pb-5">
-        <div className="relative flex-1 min-h-[300px] rounded-2xl overflow-hidden border border-[var(--border)] bg-black">
+      <div className="cam-stage">
+        {camError ? (
+          <div className="cam-placeholder">
+            <div style={{ textAlign: "center", maxWidth: 300, padding: 24 }}>
+              <span style={{ color: "var(--amber)" }}>
+                <Icon name="face" size={28} />
+              </span>
+              <div style={{ fontWeight: 600, marginTop: 12 }}>
+                {camError === "denied"
+                  ? "Camera permission denied"
+                  : "No camera available"}
+              </div>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-muted)",
+                  marginTop: 8,
+                }}
+              >
+                Allow camera access in your browser, then reload.
+              </p>
+            </div>
+          </div>
+        ) : (
           <Webcam
             key={facing}
             ref={webcamRef}
@@ -139,200 +266,136 @@ export function MobileCheckIn({ eventId }: Props) {
               width: { ideal: 720 },
               height: { ideal: 720 },
             }}
-            onUserMedia={() => setCamReady(true)}
-            onUserMediaError={() => {
-              setState({ kind: "error", message: "Camera access denied" });
-              setCamReady(false);
-            }}
             mirrored={facing === "user"}
-            className="w-full h-full object-cover"
-          />
-
-          {/* Bracket reticle overlay */}
-          <BracketsOverlay />
-
-          {/* Scan line */}
-          {camReady && state.kind === "idle" && (
-            <div
-              className="absolute left-[8%] right-[8%] h-[3px] pointer-events-none rounded-full"
-              style={{
-                top: "10%",
-                background: "linear-gradient(to right, transparent, rgba(0,229,200,0.95), transparent)",
-                boxShadow: "0 0 14px rgba(0,229,200,0.7)",
-                animation: "scanMove 2.4s ease-in-out infinite",
-              }}
-            />
-          )}
-
-          {/* Camera flip */}
-          <button
-            onClick={() => {
-              setCamReady(false);
-              setFacing((f) => (f === "user" ? "environment" : "user"));
+            onUserMedia={() => {
+              setCamReady(true);
+              setCamError(null);
             }}
-            className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/55 backdrop-blur border border-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
-            aria-label="Flip camera"
-          >
-            <RotateCw className="h-4 w-4" />
-          </button>
-
-          {/* Tap-to-capture catcher */}
-          <button
-            onClick={capture}
-            disabled={!camReady || state.kind === "capturing"}
-            aria-label="Capture"
-            className="absolute inset-0 cursor-pointer disabled:cursor-not-allowed"
-            style={{ background: "transparent" }}
+            onUserMediaError={(e) => {
+              const name =
+                typeof e === "object" && e && "name" in e ? (e as { name: string }).name : "";
+              setCamError(name === "NotAllowedError" ? "denied" : "unavailable");
+            }}
+            className={"cam-video" + (facing === "user" ? "" : " no-mirror")}
           />
+        )}
 
-          {/* Result overlay */}
-          {state.kind !== "idle" && <ResultOverlay state={state} />}
+        {running && !result && (
+          <>
+            <div className={"recticle-lg " + reticleClass}>
+              <i className="tl" />
+              <i className="tr" />
+              <i className="bl" />
+              <i className="br" />
+            </div>
+            <div className="cam-sweep" />
+          </>
+        )}
+
+        <div className="cam-status-bar">
+          <span
+            className="d"
+            style={{
+              background: statusColor,
+              boxShadow: `0 0 10px ${statusColor}`,
+            }}
+          />
+          {statusText}
         </div>
 
-        {/* Status row */}
-        <StatusRow state={state} camReady={camReady} />
+        {running && (
+          <div className="count-badge">
+            <span className="n">{count}</span>
+            <span className="lab">CHECKED IN</span>
+          </div>
+        )}
 
-        {/* Big check-in button */}
-        <button
-          onClick={capture}
-          disabled={!camReady || state.kind === "capturing"}
-          className="w-full h-16 rounded-2xl text-base font-bold transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2"
-          style={{
-            background: state.kind === "capturing" ? "var(--surface-2)" : "var(--accent)",
-            color: state.kind === "capturing" ? "var(--text-muted)" : "#080B0F",
-            boxShadow: state.kind === "capturing" ? "none" : "0 0 24px rgba(0,229,200,0.35)",
-          }}
-        >
-          <Camera className="h-5 w-5" />
-          {state.kind === "capturing" ? "Matching..." : "CHECK IN"}
-        </button>
-      </main>
-    </div>
-  );
-}
+        {result && result.ok && (
+          <div className="result-overlay ok">
+            <div
+              className="result-icon"
+              style={{
+                background: "var(--green)",
+                color: "oklch(0.16 0.02 150)",
+              }}
+            >
+              <Icon name="check" size={44} stroke={2.6} />
+            </div>
+            <div className="result-name">
+              Welcome, {result.name.split(" ")[0]}!
+            </div>
+            <div className="result-sub" style={{ color: "var(--green)" }}>
+              {result.name}
+            </div>
+            <div className="chip result-chip">
+              checked in · {fmtTime(result.at)}
+            </div>
+          </div>
+        )}
+        {result && !result.ok && (
+          <div className="result-overlay bad">
+            <div
+              className="result-icon"
+              style={{ background: "var(--red)", color: "white" }}
+            >
+              <Icon name="x" size={44} stroke={2.8} />
+            </div>
+            <div className="result-name" style={{ color: "white" }}>
+              Access Denied
+            </div>
+            <div className="result-sub" style={{ color: "var(--red)" }}>
+              {result.msg}
+            </div>
+          </div>
+        )}
 
-/* Bracket reticle SVG — matches the brand mark, overlaid on the camera */
-function BracketsOverlay() {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ animation: "fadeIn 0.7s ease" }}
-    >
-      <path d="M6 16 L6 8 Q6 6 8 6 L16 6" stroke="#00E5C8" strokeWidth="0.6" strokeLinecap="round" fill="none" />
-      <path d="M84 6 L92 6 Q94 6 94 8 L94 16" stroke="#00E5C8" strokeWidth="0.6" strokeLinecap="round" fill="none" />
-      <path d="M6 84 L6 92 Q6 94 8 94 L16 94" stroke="#00E5C8" strokeWidth="0.6" strokeLinecap="round" fill="none" />
-      <path d="M84 94 L92 94 Q94 94 94 92 L94 84" stroke="#00E5C8" strokeWidth="0.6" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-}
-
-function StatusRow({ state, camReady }: { state: State; camReady: boolean }) {
-  const label = (() => {
-    if (!camReady) return "Allow camera access";
-    switch (state.kind) {
-      case "idle":
-        return "Tap CHECK IN when ready";
-      case "capturing":
-        return "Matching face...";
-      case "verified":
-        return `✓ ${state.attendant.name}`;
-      case "denied":
-        return "Face not recognized";
-      case "no_face":
-        return "No face detected";
-      case "error":
-        return state.message;
-    }
-  })();
-
-  const color = (() => {
-    switch (state.kind) {
-      case "verified":
-        return "#22C55E";
-      case "denied":
-      case "error":
-        return "#EF4444";
-      case "no_face":
-        return "#F59E0B";
-      default:
-        return "var(--accent)";
-    }
-  })();
-
-  return (
-    <div
-      className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border bg-[var(--surface)]"
-      style={{ borderColor: "var(--border)" }}
-    >
-      <span
-        className="w-2 h-2 rounded-full"
-        style={{
-          background: color,
-          animation: state.kind === "capturing" ? "pulseDot 1.2s ease-in-out infinite" : undefined,
-        }}
-      />
-      <span
-        className="text-[13px] font-medium tracking-tight"
-        style={{ color: state.kind === "idle" || state.kind === "capturing" ? "var(--text)" : color }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function ResultOverlay({ state }: { state: State }) {
-  const isOk = state.kind === "verified";
-  const isFail = state.kind === "denied" || state.kind === "error";
-  const isWarn = state.kind === "no_face";
-
-  if (!isOk && !isFail && !isWarn) return null;
-
-  const bg = isOk ? "rgba(34,197,94,0.15)" : isFail ? "rgba(239,68,68,0.18)" : "rgba(245,158,11,0.15)";
-  const border = isOk ? "rgba(34,197,94,0.55)" : isFail ? "rgba(239,68,68,0.55)" : "rgba(245,158,11,0.55)";
-
-  return (
-    <div
-      className="absolute inset-0 flex flex-col items-center justify-center p-6 backdrop-blur-md pointer-events-none"
-      style={{
-        background: bg,
-        animation: "verifiedReveal 0.35s ease",
-      }}
-    >
-      <div
-        className="w-20 h-20 rounded-full flex items-center justify-center mb-4 border-2"
-        style={{ borderColor: border, background: "rgba(0,0,0,0.3)" }}
-      >
-        {isOk && <Check className="h-10 w-10" style={{ color: "#22C55E" }} />}
-        {isFail && <X className="h-10 w-10" style={{ color: "#EF4444" }} />}
-        {isWarn && <AlertCircle className="h-10 w-10" style={{ color: "#F59E0B" }} />}
+        {!running && !camError && (
+          <div
+            className="result-overlay"
+            style={{ background: "oklch(0.1 0.012 256 / 0.5)" }}
+          >
+            <div
+              className="result-icon"
+              style={{
+                background: "var(--ink-800)",
+                border: "1px solid var(--line)",
+                color: "var(--green)",
+              }}
+            >
+              <Icon name="scan" size={40} />
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 600 }}>
+              Ready to check in
+            </div>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                marginTop: 8,
+                maxWidth: 280,
+                fontSize: 14,
+              }}
+            >
+              Point the camera at faces and start scanning.
+            </p>
+          </div>
+        )}
       </div>
-      {state.kind === "verified" && (
-        <>
-          <div className="text-xl font-bold text-white mb-1 text-center">{state.attendant.name}</div>
-          <div className="text-xs uppercase tracking-widest font-mono text-white/80">Checked in</div>
-        </>
-      )}
-      {state.kind === "denied" && (
-        <>
-          <div className="text-xl font-bold text-white mb-1">Access Denied</div>
-          <div className="text-xs uppercase tracking-widest font-mono text-white/80">Face not recognized</div>
-        </>
-      )}
-      {state.kind === "no_face" && (
-        <>
-          <div className="text-xl font-bold text-white mb-1">No Face Detected</div>
-          <div className="text-xs uppercase tracking-widest font-mono text-white/80">Try again</div>
-        </>
-      )}
-      {state.kind === "error" && (
-        <>
-          <div className="text-xl font-bold text-white mb-1">Error</div>
-          <div className="text-xs text-white/80 text-center max-w-xs">{state.message}</div>
-        </>
-      )}
+
+      <div className="cam-controls">
+        {!running ? (
+          <button
+            className="btn btn-primary btn-lg btn-block"
+            disabled={!!camError}
+            onClick={start}
+          >
+            <Icon name="scan" size={19} /> Start scanning
+          </button>
+        ) : (
+          <button className="btn btn-ghost btn-lg btn-block" onClick={stop}>
+            <Icon name="x" size={18} /> Stop
+          </button>
+        )}
+      </div>
     </div>
   );
 }

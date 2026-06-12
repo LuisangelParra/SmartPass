@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Image from "next/image";
+import { useRef, useState, type DragEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Icon } from "@/components/landing/icons";
 
 interface Props {
   eventId: string;
@@ -17,7 +16,8 @@ export function RegisterForm({ eventId }: Props) {
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
@@ -28,72 +28,112 @@ export function RegisterForm({ eventId }: Props) {
     },
     onSuccess: (a) => {
       qc.invalidateQueries({ queryKey: ["attendants", eventId] });
-      toast.success(`${a.name} registered`);
+      toast.success(`${a.name} enrolled`);
       setName("");
       setFile(null);
       setPreview(null);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message || "Enrollment failed"),
   });
 
-  function handleFile(f: File) {
+  function pick(f: File | undefined | null) {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("That's not an image file");
+      return;
+    }
     setFile(f);
-    const url = URL.createObjectURL(f);
-    setPreview(url);
+    setPreview(URL.createObjectURL(f));
+    if (!name) {
+      const base = f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+      setName(base.replace(/\b\w/g, (c) => c.toUpperCase()));
+    }
+  }
+
+  function onDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setOver(false);
+    pick(e.dataTransfer.files[0]);
+  }
+
+  function submit() {
+    if (!name.trim()) {
+      toast.error("Enter the attendant's name");
+      return;
+    }
+    if (!file) {
+      toast.error("Add a photo");
+      return;
+    }
+    mutate();
   }
 
   return (
-    <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col gap-4">
-      <h3 className="font-semibold text-[var(--text)]">Single Registration</h3>
-
-      <Input
-        placeholder="Full name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-
-      {preview ? (
-        <div className="relative">
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-40 object-cover rounded-lg"
-          />
-          <button
-            onClick={() => {
-              setFile(null);
-              setPreview(null);
-            }}
-            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="flex flex-col items-center gap-2 py-8 rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-        >
-          <Upload className="h-6 w-6" />
-          <span className="text-sm">Click to upload photo (JPG, PNG)</span>
-        </button>
-      )}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/jpeg,image/jpg,image/png"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-      />
-
-      <Button
-        onClick={() => mutate()}
-        disabled={!name.trim() || !file || isPending}
+    <div className="card">
+      <h3>
+        <Icon name="face" size={18} /> Add an attendant
+      </h3>
+      <p className="hint">
+        One clear photo with exactly one face. The image becomes a vector and is
+        discarded.
+      </p>
+      <div className="field" style={{ marginBottom: 14 }}>
+        <input
+          className="input"
+          placeholder="Full name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div
+        className={"drop" + (over ? " over" : "")}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={onDrop}
       >
-        {isPending ? "Registering…" : "Register Attendant"}
-      </Button>
+        {preview ? (
+          <Image
+            src={preview}
+            alt="preview"
+            width={64}
+            height={64}
+            unoptimized
+            className="drop-preview"
+          />
+        ) : (
+          <span className="di">
+            <Icon name="face" size={26} />
+          </span>
+        )}
+        <span className="dt">
+          {file ? file.name : "Drop a photo or click to browse"}
+        </span>
+        <span className="ds">JPEG / PNG · single face</span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => pick(e.target.files?.[0])}
+        />
+      </div>
+      <button
+        className="btn btn-primary btn-block"
+        style={{ marginTop: 14 }}
+        disabled={isPending}
+        onClick={submit}
+      >
+        {isPending ? (
+          <span className="spin" />
+        ) : (
+          <Icon name="check" size={18} stroke={2.2} />
+        )}
+        {isPending ? "Enrolling…" : "Enroll attendant"}
+      </button>
     </div>
   );
 }

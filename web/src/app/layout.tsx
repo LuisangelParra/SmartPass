@@ -1,9 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "sonner";
+
+const fontDisplay = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -30,7 +45,7 @@ const KEYWORDS = [
 ];
 
 export const viewport: Viewport = {
-  themeColor: "#080B0F",
+  themeColor: "#0b0d11",
   width: "device-width",
   initialScale: 1,
   colorScheme: "dark",
@@ -113,7 +128,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${fontDisplay.variable} ${fontMono.variable}`}>
       <head>
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"} />
         <script

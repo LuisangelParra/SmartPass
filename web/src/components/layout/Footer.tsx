@@ -2,34 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SmartPassLogo } from "./Navbar";
+import { Icon } from "@/components/landing/icons";
 
-const groups = [
+const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
-    label: "Product",
+    title: "Product",
     links: [
-      { name: "Dashboard", href: "/dashboard" },
-      { name: "Features", href: "#features" },
-      { name: "How it Works", href: "#how-it-works" },
-      { name: "Use Cases", href: "#use-cases" },
+      { label: "Features", href: "/#features" },
+      { label: "How it works", href: "/#how" },
+      { label: "Live views", href: "/#views" },
+      { label: "Launch dashboard", href: "/dashboard" },
     ],
   },
   {
-    label: "Developer",
+    title: "Developers",
     links: [
-      { name: "API Reference", href: "/docs" },
-      { name: "Architecture", href: "/docs" },
-      { name: "GitHub", href: "https://github.com" },
-      { name: "MIT License", href: "/docs" },
+      { label: "Documentation", href: "/#developers" },
+      { label: "GitHub", href: "https://github.com" },
+      { label: "API reference", href: "/#developers" },
+      { label: "Architecture", href: "/#developers" },
     ],
   },
   {
-    label: "Resources",
+    title: "Company",
     links: [
-      { name: "FAQ", href: "#faq" },
-      { name: "Privacy by Design", href: "#features" },
-      { name: "pgvector", href: "https://github.com/pgvector/pgvector" },
-      { name: "face_recognition", href: "https://github.com/ageitgey/face_recognition" },
+      { label: "About", href: "/" },
+      { label: "Privacy", href: "/" },
+      { label: "Security", href: "/" },
+      { label: "Contact", href: "/" },
     ],
   },
 ];
@@ -37,68 +37,51 @@ const groups = [
 export function Footer() {
   const pathname = usePathname();
   if (pathname.startsWith("/c/")) return null;
+  if (pathname.startsWith("/events/") && pathname.endsWith("/checkin")) return null;
 
   return (
-    <footer
-      className="border-t border-[var(--border)] px-7 pt-16 pb-9"
-      style={{ background: "var(--bg)" }}
-    >
-      <div className="max-w-[1160px] mx-auto">
-        <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12">
-          {/* Brand column */}
+    <footer className="footer">
+      <div className="wrap">
+        <div className="footer-grid">
           <div>
-            <Link href="/" className="inline-block mb-5">
-              <SmartPassLogo height={26} />
-            </Link>
-            <p className="text-sm text-[var(--text-muted)] leading-[1.65] max-w-xs">
-              Biometric event check-in. Privacy-first facial recognition
-              powered by pgvector and dlib.
-            </p>
-            <div className="mt-5 flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]"
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "var(--accent)", opacity: 0.6 }}
-                />
-                128-DIM EMBEDDINGS
+            <Link href="/" className="brand" style={{ marginBottom: 16 }}>
+              <span className="brand-mark">
+                <Icon name="fingerprint" size={18} stroke={1.8} />
               </span>
-            </div>
+              SmartPass
+            </Link>
+            <p
+              style={{
+                fontSize: 14,
+                color: "var(--text-muted)",
+                maxWidth: 280,
+                marginTop: 14,
+                lineHeight: 1.55,
+              }}
+            >
+              Open-source biometric access control. Your face is your ticket.
+            </p>
           </div>
-
-          {/* Link groups */}
-          {groups.map((group) => (
-            <div key={group.label}>
-              <h4 className="font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-4">
-                {group.label}
-              </h4>
-              <ul className="flex flex-col gap-2.5">
-                {group.links.map((l) => (
-                  <li key={l.name}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                    >
-                      {l.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {COLUMNS.map((c) => (
+            <div key={c.title}>
+              <h5>{c.title}</h5>
+              {c.links.map((l) =>
+                l.href.startsWith("http") ? (
+                  <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">
+                    {l.label}
+                  </a>
+                ) : (
+                  <Link key={l.label} href={l.href}>
+                    {l.label}
+                  </Link>
+                )
+              )}
             </div>
           ))}
         </div>
-
-        {/* Bottom bar */}
-        <div className="pt-7 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-4">
-          <p className="text-xs text-[var(--text-muted)]">
-            © 2026 SmartPass. Open source under the MIT License.
-          </p>
-          <div className="flex items-center gap-5 text-xs text-[var(--text-muted)]">
-            <span className="font-mono uppercase tracking-widest text-[10px]">
-              v1.0 · Built with Next.js + FastAPI
-            </span>
-          </div>
+        <div className="footer-bot">
+          <span>© 2026 SmartPass · MIT License</span>
+          <span>Privacy by design · no raw images stored</span>
         </div>
       </div>
     </footer>
