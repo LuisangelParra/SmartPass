@@ -1,0 +1,15 @@
+web/
+frontend/
+docs/
+.next/
+node_modules/
+.git/
+.github/
+.venv/
+__pycache__/
+*.md
+*.pyc
+.env
+.env.*
+.DS_Store
+.claude/
