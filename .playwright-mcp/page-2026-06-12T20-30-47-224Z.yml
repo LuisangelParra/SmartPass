@@ -1,0 +1,95 @@
+- generic:
+  - navigation:
+    - generic:
+      - link:
+        - /url: /
+        - generic:
+          - img
+        - text: SmartPass
+      - generic:
+        - link:
+          - /url: https://github.com
+          - img
+          - text: 4.2k
+        - link:
+          - /url: /dashboard
+          - text: Dashboard
+  - main:
+    - generic:
+      - generic:
+        - generic:
+          - heading [level=1]: Your Events
+          - paragraph: 0 events
+        - button [expanded]:
+          - img
+          - text: New Event
+      - generic:
+        - generic: 📋
+        - paragraph: No events yet
+        - paragraph: Create your first event to get started.
+  - contentinfo:
+    - generic:
+      - generic:
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+            - text: SmartPass
+          - paragraph: Open-source biometric access control. Your face is your ticket.
+        - generic:
+          - heading [level=5]: Product
+          - link:
+            - /url: /#features
+            - text: Features
+          - link:
+            - /url: /#how
+            - text: How it works
+          - link:
+            - /url: /#views
+            - text: Live views
+          - link:
+            - /url: /dashboard
+            - text: Launch dashboard
+        - generic:
+          - heading [level=5]: Developers
+          - link:
+            - /url: /#developers
+            - text: Documentation
+          - link:
+            - /url: https://github.com
+            - text: GitHub
+          - link:
+            - /url: /#developers
+            - text: API reference
+          - link:
+            - /url: /#developers
+            - text: Architecture
+        - generic:
+          - heading [level=5]: Company
+          - link:
+            - /url: /
+            - text: About
+          - link:
+            - /url: /
+            - text: Privacy
+          - link:
+            - /url: /
+            - text: Security
+          - link:
+            - /url: /
+            - text: Contact
+      - generic:
+        - generic: © 2026 SmartPass · MIT License
+        - generic: Privacy by design · no raw images stored
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e66] [cursor=pointer]:
+    - img [ref=e67]
+  - alert
+  - dialog "Create a New Event" [ref=e71]:
+    - heading "Create a New Event" [level=2] [ref=e73]
+    - generic [ref=e74]:
+      - textbox "Event name (e.g. Tech Conference 2026)" [active] [ref=e75]
+      - button "Create Event" [disabled]
+    - button [ref=e76] [cursor=pointer]:
+      - img [ref=e77]

@@ -1,0 +1,135 @@
+- generic [active] [ref=e1]:
+  - main [ref=e16]:
+    - generic [ref=e82]:
+      - link "SmartPass" [ref=e83] [cursor=pointer]:
+        - /url: /
+        - img [ref=e85]
+        - text: SmartPass
+      - generic [ref=e90]:
+        - generic [ref=e91]: Test Event
+        - generic [ref=e92]: event/36d5cefb
+      - generic [ref=e93]:
+        - button "Reception QR" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - text: Reception QR
+        - link "Open reception" [ref=e98] [cursor=pointer]:
+          - /url: /events/36d5cefb-58a6-4e4a-89e4-9248ffdc5915/checkin
+          - img [ref=e99]
+          - text: Open reception
+      - link "All events" [ref=e104] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e105]
+        - text: All events
+    - generic [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - heading "Add an attendant" [level=3] [ref=e111]:
+            - img [ref=e112]
+            - text: Add an attendant
+          - paragraph [ref=e115]: One clear photo with exactly one face. The image becomes a vector and is discarded.
+          - textbox "Full name" [ref=e117]
+          - generic [ref=e118] [cursor=pointer]:
+            - img [ref=e120]
+            - generic [ref=e123]: Drop a photo or click to browse
+            - generic [ref=e124]: JPEG / PNG · single face
+          - button "Enroll attendant" [ref=e125] [cursor=pointer]:
+            - img [ref=e126]
+            - text: Enroll attendant
+        - generic [ref=e128]:
+          - heading "Bulk enroll via ZIP" [level=3] [ref=e129]:
+            - img [ref=e130]
+            - text: Bulk enroll via ZIP
+          - paragraph [ref=e134]: Drop one ZIP of photos labeled by name — john_doe.jpg → “john doe”. Processed entirely in memory.
+          - generic [ref=e135] [cursor=pointer]:
+            - img [ref=e137]
+            - generic [ref=e141]: Drop guests.zip or click to browse
+            - generic [ref=e142]: .jpg / .jpeg / .png inside
+          - button "Upload & enroll" [disabled] [ref=e143]:
+            - img [ref=e144]
+            - text: Upload & enroll
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - generic [ref=e150]: Total guests
+            - generic [ref=e151]: "0"
+          - generic [ref=e152]:
+            - generic [ref=e153]: Checked in
+            - generic [ref=e154]: "0"
+          - generic [ref=e155]:
+            - generic [ref=e156]: Pending
+            - generic [ref=e157]: "0"
+          - generic [ref=e158]:
+            - generic [ref=e159]: Attendance
+            - generic [ref=e160]: 0%
+        - generic [ref=e161]:
+          - generic [ref=e162]: LIVE
+          - generic [ref=e166]: auto-refresh · 3s
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - heading "Guest list" [level=3] [ref=e169]
+            - generic [ref=e170]: 0 total
+            - generic [ref=e171]:
+              - button "All" [ref=e172] [cursor=pointer]
+              - button "Arrived" [ref=e173] [cursor=pointer]
+              - button "Pending" [ref=e174] [cursor=pointer]
+            - generic [ref=e175]:
+              - img [ref=e176]
+              - textbox "Search names" [ref=e181]
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - generic [ref=e184]: Name
+              - generic [ref=e185]: Checked in
+              - generic [ref=e186]: Status
+            - generic [ref=e187]:
+              - img [ref=e188]
+              - generic [ref=e191]: No attendants yet — enroll someone to get started.
+  - contentinfo [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - link "SmartPass" [ref=e32] [cursor=pointer]:
+            - /url: /
+            - img [ref=e34]
+            - text: SmartPass
+          - paragraph [ref=e39]: Open-source biometric access control. Your face is your ticket.
+        - generic [ref=e40]:
+          - heading "Product" [level=5] [ref=e41]
+          - link "Features" [ref=e42] [cursor=pointer]:
+            - /url: /#features
+          - link "How it works" [ref=e43] [cursor=pointer]:
+            - /url: /#how
+          - link "Live views" [ref=e44] [cursor=pointer]:
+            - /url: /#views
+          - link "Launch dashboard" [ref=e45] [cursor=pointer]:
+            - /url: /dashboard
+        - generic [ref=e46]:
+          - heading "Developers" [level=5] [ref=e47]
+          - link "Documentation" [ref=e48] [cursor=pointer]:
+            - /url: /#developers
+          - link "GitHub" [ref=e49] [cursor=pointer]:
+            - /url: https://github.com
+          - link "API reference" [ref=e50] [cursor=pointer]:
+            - /url: /#developers
+          - link "Architecture" [ref=e51] [cursor=pointer]:
+            - /url: /#developers
+        - generic [ref=e52]:
+          - heading "Company" [level=5] [ref=e53]
+          - link "About" [ref=e54] [cursor=pointer]:
+            - /url: /
+          - link "Privacy" [ref=e55] [cursor=pointer]:
+            - /url: /
+          - link "Security" [ref=e56] [cursor=pointer]:
+            - /url: /
+          - link "Contact" [ref=e57] [cursor=pointer]:
+            - /url: /
+      - generic [ref=e58]:
+        - generic [ref=e59]: © 2026 SmartPass · MIT License
+        - generic [ref=e60]: Privacy by design · no raw images stored
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e192]:
+        - img [ref=e194]
+        - generic [ref=e197]: Event "Test Event" created
+  - button "Open Next.js Dev Tools" [ref=e66] [cursor=pointer]:
+    - img [ref=e67]
+  - alert [ref=e70]

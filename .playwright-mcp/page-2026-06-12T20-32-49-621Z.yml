@@ -1,0 +1,73 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "SmartPass" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - text: SmartPass
+      - generic [ref=e11]:
+        - link "4.2k" [ref=e12] [cursor=pointer]:
+          - /url: https://github.com
+          - img [ref=e13]
+          - text: 4.2k
+        - link "Dashboard" [ref=e15] [cursor=pointer]:
+          - /url: /dashboard
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - heading "Your Events" [level=1] [ref=e20]
+          - paragraph [ref=e21]: 0 events
+        - button "New Event" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+          - text: New Event
+      - generic [ref=e24]:
+        - generic [ref=e25]: 📋
+        - paragraph [ref=e26]: No events yet
+        - paragraph [ref=e27]: Create your first event to get started.
+  - contentinfo [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - link "SmartPass" [ref=e32] [cursor=pointer]:
+            - /url: /
+            - img [ref=e34]
+            - text: SmartPass
+          - paragraph [ref=e39]: Open-source biometric access control. Your face is your ticket.
+        - generic [ref=e40]:
+          - heading "Product" [level=5] [ref=e41]
+          - link "Features" [ref=e42] [cursor=pointer]:
+            - /url: /#features
+          - link "How it works" [ref=e43] [cursor=pointer]:
+            - /url: /#how
+          - link "Live views" [ref=e44] [cursor=pointer]:
+            - /url: /#views
+          - link "Launch dashboard" [ref=e45] [cursor=pointer]:
+            - /url: /dashboard
+        - generic [ref=e46]:
+          - heading "Developers" [level=5] [ref=e47]
+          - link "Documentation" [ref=e48] [cursor=pointer]:
+            - /url: /#developers
+          - link "GitHub" [ref=e49] [cursor=pointer]:
+            - /url: https://github.com
+          - link "API reference" [ref=e50] [cursor=pointer]:
+            - /url: /#developers
+          - link "Architecture" [ref=e51] [cursor=pointer]:
+            - /url: /#developers
+        - generic [ref=e52]:
+          - heading "Company" [level=5] [ref=e53]
+          - link "About" [ref=e54] [cursor=pointer]:
+            - /url: /
+          - link "Privacy" [ref=e55] [cursor=pointer]:
+            - /url: /
+          - link "Security" [ref=e56] [cursor=pointer]:
+            - /url: /
+          - link "Contact" [ref=e57] [cursor=pointer]:
+            - /url: /
+      - generic [ref=e58]:
+        - generic [ref=e59]: © 2026 SmartPass · MIT License
+        - generic [ref=e60]: Privacy by design · no raw images stored
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e66] [cursor=pointer]:
+    - img [ref=e67]
+  - alert [ref=e70]
